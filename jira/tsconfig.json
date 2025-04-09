@@ -29,7 +29,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node", "jest", "@types/aws-lambda"],
+    "types": ["node", "jest"],
     "typeRoots": ["./types", "./node_modules/@types"] // Add custom types
   },
   "include": [

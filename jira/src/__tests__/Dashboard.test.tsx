@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import Dashboard from "../dashboard"; // Default export
+import Dashboard from "../pages/dashboard"; // Default export
 import { api } from "@/utils/api";
 import { useSession } from "next-auth/react";
 
