@@ -1,16 +1,29 @@
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 import { api } from "@/utils/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { TaskList } from "@/components/TaskList"; // Updated import
-import { Session } from "inspector/promises";
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const { data: projects, isLoading } = api.project.getAll.useQuery();
 
-  if (!session) return <div className="p-6 max-w-4xl mx-auto text-gray-600">Please sign in.</div>;
-  if (isLoading) return <div className="p-6 max-w-4xl mx-auto text-gray-600">Loading...</div>;
+  // Redirect to /auth/signin if the user is not authenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return <div className="p-6 max-w-4xl mx-auto text-gray-600">Loading...</div>;
+  }
+
+  if (!session) {
+    return null; // Prevent rendering until redirection happens
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -35,70 +48,11 @@ export default function Home() {
   );
 }
 
-// function TaskList({ projectId }: { projectId: string }) {
-//   const { data: tasks, refetch } = api.task.getByProject.useQuery({ projectId });
-//   const deleteTask = api.task.delete.useMutation({
-//     onSuccess: () => refetch(),
-//   });
-//   const [editingTask, setEditingTask] = useState<string | null>(null);
-
-//   return (
-//     <ul className="space-y-3">
-//       {tasks?.map((task) => (
-//         <li
-//           key={task.id}
-//           className="p-4 bg-gray-50 rounded-md flex justify-between items-center"
-//         >
-//           {editingTask === task.id ? (
-//             <TaskEditForm task={task} onClose={() => setEditingTask(null)} />
-//           ) : (
-//             <>
-//               <div className="flex-1">
-//                 <span className="font-medium text-gray-800">{task.title}</span>
-//                 <span className="ml-2 text-sm text-gray-500">
-//                   {task.priority} - {task.status}
-//                 </span>
-//                 {task.deadline && (
-//                   <span className="ml-2 text-sm text-gray-400">
-//                     (Due: {new Date(task.deadline).toLocaleDateString()})
-//                   </span>
-//                 )}
-//                 {task.tags?.length > 0 && (
-//                   <span className="ml-2 text-xs text-gray-600">{task.tags.join(", ")}</span>
-//                 )}
-//                 {task.assignedTo && (
-//                   <span className="ml-2 text-xs text-blue-600">
-//                     Assigned: {task.assignedTo.name}
-//                   </span>
-//                 )}
-//               </div>
-//               <div className="space-x-2">
-//                 <button
-//                   onClick={() => setEditingTask(task.id)}
-//                   className="text-blue-500 hover:text-blue-700"
-//                 >
-//                   Edit
-//                 </button>
-//                 <button
-//                   onClick={() => deleteTask.mutate({ id: task.id })}
-//                   className="text-red-500 hover:text-red-700"
-//                 >
-//                   Delete
-//                 </button>
-//               </div>
-//             </>
-//           )}
-//         </li>
-//       ))}
-//     </ul>
-//   );
-// }
-
 function TaskForm({ projectId }: { projectId: string }) {
   const { data: session } = useSession();
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("MEDIUM");
-  const [status, setStatus] = useState("TODO");
+  const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [status, setStatus] = useState<"TODO" | "IN_PROGRESS" | "DONE">("TODO");
   const [deadline, setDeadline] = useState("");
   const [tags, setTags] = useState("");
   const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -118,7 +72,7 @@ function TaskForm({ projectId }: { projectId: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if(!session) return
+    if (!session) return;
     createTask.mutate({
       projectId,
       title,
@@ -142,7 +96,7 @@ function TaskForm({ projectId }: { projectId: string }) {
       />
       <select
         value={priority}
-        onChange={(e) => setPriority(e.target.value)}
+        onChange={(e) => setPriority(e.target.value as "LOW" | "MEDIUM" | "HIGH")}
         className="w-full p-2 border rounded-md"
       >
         <option value="LOW">Low</option>
@@ -151,7 +105,7 @@ function TaskForm({ projectId }: { projectId: string }) {
       </select>
       <select
         value={status}
-        onChange={(e) => setStatus(e.target.value)}
+        onChange={(e) => setStatus(e.target.value as "TODO" | "IN_PROGRESS" | "DONE")}
         className="w-full p-2 border rounded-md"
       >
         <option value="TODO">To Do</option>
@@ -192,108 +146,6 @@ function TaskForm({ projectId }: { projectId: string }) {
     </form>
   );
 }
-
-// function TaskEditForm({ task, onClose }: { task: any; onClose: () => void }) {
-//   const [title, setTitle] = useState(task.title);
-//   const [priority, setPriority] = useState(task.priority);
-//   const [status, setStatus] = useState(task.status);
-//   const [deadline, setDeadline] = useState(
-//     task.deadline ? new Date(task.deadline).toISOString().split("T")[0] : ""
-//   );
-//   const [tags, setTags] = useState(task.tags.join(", "));
-//   const [userId, setUserId] = useState<string | undefined>(task.userId);
-//   const { data: members } = api.user.getProjectMembers.useQuery({ projectId: task.projectId });
-//   const utils = api.useUtils();
-//   const updateTask = api.task.update.useMutation({
-//     onSuccess: () => {
-//       utils.task.getByProject.invalidate({ projectId: task.projectId });
-//       onClose();
-//     },
-//   });
-
-//   const handleSubmit = (e: React.FormEvent) => {
-//     e.preventDefault();
-//     updateTask.mutate({
-//       id: task.id,
-//       title,
-//       priority,
-//       status,
-//       deadline: deadline ? new Date(deadline).toISOString() : null,
-//       tags: tags.split(",").map((tag) => tag.trim()),
-//       userId,
-//     });
-//   };
-
-//   return (
-//     <form onSubmit={handleSubmit} className="space-y-4 flex-1">
-//       <input
-//         type="text"
-//         value={title}
-//         onChange={(e) => setTitle(e.target.value)}
-//         className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-//         required
-//       />
-//       <select
-//         value={priority}
-//         onChange={(e) => setPriority(e.target.value)}
-//         className="w-full p-2 border rounded-md"
-//       >
-//         <option value="LOW">Low</option>
-//         <option value="MEDIUM">Medium</option>
-//         <option value="HIGH">High</option>
-//       </select>
-//       <select
-//         value={status}
-//         onChange={(e) => setStatus(e.target.value)}
-//         className="w-full p-2 border rounded-md"
-//       >
-//         <option value="TODO">To Do</option>
-//         <option value="IN_PROGRESS">In Progress</option>
-//         <option value="DONE">Done</option>
-//       </select>
-//       <input
-//         type="date"
-//         value={deadline}
-//         onChange={(e) => setDeadline(e.target.value)}
-//         className="w-full p-2 border rounded-md"
-//       />
-//       <input
-//         type="text"
-//         value={tags}
-//         onChange={(e) => setTags(e.target.value)}
-//         placeholder="Tags (comma-separated)"
-//         className="w-full p-2 border rounded-md"
-//       />
-//       <select
-//         value={userId || ""}
-//         onChange={(e) => setUserId(e.target.value || undefined)}
-//         className="w-full p-2 border rounded-md"
-//       >
-//         <option value="">Unassigned</option>
-//         {members?.map((member) => (
-//           <option key={member.id} value={member.id}>
-//             {member.name}
-//           </option>
-//         ))}
-//       </select>
-//       <div className="space-x-2">
-//         <button
-//           type="submit"
-//           className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-//         >
-//           Save
-//         </button>
-//         <button
-//           type="button"
-//           onClick={onClose}
-//           className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
-//         >
-//           Cancel
-//         </button>
-//       </div>
-//     </form>
-//   );
-// }
 
 function ProfileSection() {
   const { data: session } = useSession();

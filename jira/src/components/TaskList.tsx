@@ -67,7 +67,7 @@ function TaskEditForm({ task, onClose }: { task: any; onClose: () => void }) {
   const [deadline, setDeadline] = useState(
     task.deadline ? new Date(task.deadline).toISOString().split("T")[0] : ""
   );
-  const [tags, setTags] = useState(task.tags.join(", "));
+  const [tags, setTags] = useState<string>(task.tags?.join(", ") || "");
   const [userId, setUserId] = useState<string | undefined>(task.userId);
   const { data: members } = api.user.getProjectMembers.useQuery({ projectId: task.projectId });
   const utils = api.useUtils();
