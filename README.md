@@ -38,7 +38,7 @@ A task management and collaboration tool built as a Senior Software Engineer dev
 2. Install Dependencies:
    npm install
 
-3. *et Up Environment Variables:
+3. Set Up Environment Variables:
    - Create a `.env` file based on `.env.example`:
 
      # Supabase
