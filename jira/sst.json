@@ -1,0 +1,5 @@
+{
+  "name": "jira",
+  "region": "us-east-1",
+  "main": "sst.config.ts"
+}
