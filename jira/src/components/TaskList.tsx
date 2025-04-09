@@ -1,6 +1,18 @@
 import { api } from "@/utils/api";
 import { useState } from "react";
 
+interface Task {
+  id: string;
+  title: string;
+  priority: "LOW" | "MEDIUM" | "HIGH";
+  status: "TODO" | "IN_PROGRESS" | "DONE";
+  deadline: string | null;
+  tags: string[];
+  userId?: string;
+  projectId: string;
+}
+
+
 export const TaskList = ({ projectId }: { projectId: string }) => {
   const { data: tasks, refetch } = api.task.getByProject.useQuery({ projectId });
   const deleteTask = api.task.delete.useMutation({
@@ -16,7 +28,14 @@ export const TaskList = ({ projectId }: { projectId: string }) => {
           className="p-4 bg-gray-50 rounded-md flex justify-between items-center"
         >
           {editingTask === task.id ? (
-            <TaskEditForm task={task} onClose={() => setEditingTask(null)} />
+            <TaskEditForm
+              task={{
+                ...task,
+                deadline: task.deadline?.toISOString() ?? null,
+                userId: task.userId ?? undefined
+              }}
+              onClose={() => setEditingTask(null)}
+            />
           ) : (
             <>
               <div className="flex-1">
@@ -60,20 +79,20 @@ export const TaskList = ({ projectId }: { projectId: string }) => {
   );
 };
 
-function TaskEditForm({ task, onClose }: { task: any; onClose: () => void }) {
+function TaskEditForm({ task, onClose }: Readonly<{ task: Task; onClose: () => void }>) {
   const [title, setTitle] = useState(task.title);
   const [priority, setPriority] = useState(task.priority);
   const [status, setStatus] = useState(task.status);
   const [deadline, setDeadline] = useState(
     task.deadline ? new Date(task.deadline).toISOString().split("T")[0] : ""
   );
-  const [tags, setTags] = useState<string>(task.tags?.join(", ") || "");
+  const [tags, setTags] = useState<string>(task.tags?.join(", ") ?? "");
   const [userId, setUserId] = useState<string | undefined>(task.userId);
   const { data: members } = api.user.getProjectMembers.useQuery({ projectId: task.projectId });
   const utils = api.useUtils();
   const updateTask = api.task.update.useMutation({
-    onSuccess: () => {
-      utils.task.getByProject.invalidate({ projectId: task.projectId });
+    onSuccess: async () => {
+      await utils.task.getByProject.invalidate({ projectId: task.projectId });
       onClose();
     },
   });
@@ -102,18 +121,16 @@ function TaskEditForm({ task, onClose }: { task: any; onClose: () => void }) {
       />
       <select
         value={priority}
-        onChange={(e) => setPriority(e.target.value)}
-        className="w-full p-2 border rounded-md"
-      >
+        onChange={(e) => setPriority(e.target.value as "LOW" | "MEDIUM" | "HIGH")}
+        className="w-full p-2 border rounded-md">
         <option value="LOW">Low</option>
         <option value="MEDIUM">Medium</option>
         <option value="HIGH">High</option>
       </select>
       <select
         value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="w-full p-2 border rounded-md"
-      >
+        onChange={(e) => setStatus(e.target.value as "TODO" | "IN_PROGRESS" | "DONE")}
+        className="w-full p-2 border rounded-md">
         <option value="TODO">To Do</option>
         <option value="IN_PROGRESS">In Progress</option>
         <option value="DONE">Done</option>
@@ -132,7 +149,7 @@ function TaskEditForm({ task, onClose }: { task: any; onClose: () => void }) {
         className="w-full p-2 border rounded-md"
       />
       <select
-        value={userId || ""}
+        value={userId ?? ""}
         onChange={(e) => setUserId(e.target.value || undefined)}
         className="w-full p-2 border rounded-md"
       >
