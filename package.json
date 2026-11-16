@@ -1,8 +1,13 @@
 {
+  "name": "project-management-app",
+  "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
   "devDependencies": {
     "aws-cdk-lib": "^2.188.0",
-    "constructs": "^10.4.2"
-  },
-  "dependencies": {
+    "constructs": "^10.4.2",
+    "testdriverai": "^7.11.171",
+    "vitest": "^5.1.0"
   }
 }
